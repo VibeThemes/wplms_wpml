@@ -128,4 +128,11 @@ function wplms_wpml_update() {
     /* Load Updater Class */
     new WPLMS_Wpml_Auto_Update( $config );
 }
-      
+add_filter('vibebp_vars',function($data){
+  $single_page =vibebp_get_setting('bp_single_page');
+  if(function_exists('icl_object_id') && !empty($single_page)){
+    $single_page = icl_object_id($single_page, 'page', true);
+    $data['profile_link'] = get_permalink($single_page );
+  }
+  return $data;
+});
