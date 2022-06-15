@@ -7,7 +7,7 @@ Author: Vibethemes
 Author URI: https://vibethemes.com/
 Text Domain: wplms-wpml
 Domain Path: /languages/
-Version: 1.0
+Version: 1.1
 */
 
 
@@ -136,3 +136,10 @@ add_filter('vibebp_vars',function($data){
   }
   return $data;
 });
+
+add_filter('vibebp_get_setting',function($value,$field){
+  if($field == 'bp_single_page'){
+    $value = icl_object_id($value, 'page', true);
+  }
+  return $value;
+},10,2);
