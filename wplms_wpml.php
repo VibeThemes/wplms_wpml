@@ -7,7 +7,7 @@ Author: Vibethemes
 Author URI: https://vibethemes.com/
 Text Domain: wplms-wpml
 Domain Path: /languages/
-Version: 1.2
+Version: 1.4
 */
 
 
@@ -67,45 +67,16 @@ add_filter('wplms_course_directory_course_filters',function($args){
     return $args;
 });
 
-add_filter('vibebp_loggedin_menu_nav',function($menu){
-  
-  $init = VibeBP_API_Init::init();
-  $menu = apply_filters('vibebp_loggedin_menu','loggedin',$init->user);
 
-  $menuLocations = get_nav_menu_locations(); 
 
-  $menuID = $menuLocations[$menu]; 
-  global $sitepress;
-  $current_language = $sitepress->get_current_language();
-  $sitepress->switch_lang($_COOKIE['wp-wpml_current_language'], false );
-  add_filter('wp_setup_nav_menu_item',array($init,'remove_buddypress_invalid_url'));
-  $menu = wp_get_nav_menu_items($menuID);
-  $sitepress->switch_lang( $current_language, false );
 
-  return $menu;
-});
-
-add_filter('vibebp_profile_menu_nav',function($menu){
-
-  $init = VibeBP_API_Init::init();
-  $menu = apply_filters('vibebp_profile_menu','profile',$init->user);
-  $menuLocations = get_nav_menu_locations(); 
-  $menuID = $menuLocations[$menu]; 
-  global $sitepress;
-  $current_language = $sitepress->get_current_language();
-  $sitepress->switch_lang($_COOKIE['wp-wpml_current_language'], false );
-  add_filter('wp_setup_nav_menu_item',array($init,'remove_buddypress_invalid_url'));
-  $menu = wp_get_nav_menu_items($menuID);
-  $sitepress->switch_lang( $current_language, false );
-
-  return $menu;
-});
 
 add_action('vibebp_record_bp_setup_nav',function($nav){
   if(!empty($nav)){
     global $sitepress;
     $current_language = $sitepress->get_current_language();
     $sitepress->switch_lang($_COOKIE['wp-wpml_current_language'], false );
+//        $sitepress->switch_lang($_COOKIE['_icl_current_language'], false );
     update_option('vibebp_reload_nav_'.$current_language,$nav);
     $sitepress->switch_lang( $current_language, false );
   }
@@ -115,6 +86,7 @@ add_action('vibebp_record_bp_setup_nav',function($nav){
 add_filter('vibebp_setup_nav',function($menu){
 
   $current_langauge = $_COOKIE['wp-wpml_current_language'];
+  //    $current_langauge = $_COOKIE['_icl_current_language'];
   $option = get_option('vibebp_reload_nav_'.$current_langauge);
   if(!empty($option)){
     $menu = $option;
@@ -155,8 +127,9 @@ add_filter('vibebp_vars',function($data){
 add_filter('vibebp_bp_xprofile_field',function($f){
   global $field;
   $field = $f;
-  if(!empty($_COOKIE['wp-wpml_current_language']))
-  $field['name'] = apply_filters( 'wpml_translate_single_string', $field['name'], 'Buddypress Multilingual','profile field '.$field['id'].' name', $_COOKIE['wp-wpml_current_language']);
+  $cookie_name = 'wp-wpml_current_language'; //_icl_current_language
+  if(!empty($_COOKIE[$cookie_name]))
+  $field['name'] = apply_filters( 'wpml_translate_single_string', $field['name'], 'Buddypress Multilingual','profile field '.$field['id'].' name', $_COOKIE[$cookie_name]);
   return $field;
 });
   
@@ -169,10 +142,42 @@ add_action('vibebp_before_notification_loop',function(){
 
 
 add_filter('vibebp_loggedin_menu_nav',function($menu){
-  $menu = 'loggedin';
+  $init = VibeBP_API_Init::init();
+    $menu = apply_filters('vibebp_loggedin_menu','loggedin',$init->user);
   $menuLocations = get_nav_menu_locations(); 
-  $mid = apply_filters('wpml_object_id',$menuLocations[$menu],'nav_menu');
+$mid = $menuLocations[$menu];
+  if(isset($_COOKIE['wp-wpml_current_language'])){
+    $mid = apply_filters('wpml_object_id',$menuLocations[$menu],'nav_menu',false,$_COOKIE['wp-wpml_current_language']);
+  }
+  
+  
+  
+  
+  //print_r($_COOKIE['wp-wpml_current_language'].' = '.$mid);
+
   $menu = wp_get_nav_menu_items($mid);
+
+    return $menu;
+});
+
+
+
+add_filter('vibebp_profile_menu_nav',function($menu){
+  $init = VibeBP_API_Init::init();
+    $menu = apply_filters('vibebp_profile_menu','profile',$init->user);
+  $menuLocations = get_nav_menu_locations(); 
+  $mid = $menuLocations[$menu];
+  if(isset($_COOKIE['wp-wpml_current_language'])){
+    $mid = apply_filters('wpml_object_id',$menuLocations[$menu],'nav_menu',false,$_COOKIE['wp-wpml_current_language']);
+  
+}
+  
+  
+  
+  //print_r($_COOKIE['wp-wpml_current_language'].' = '.$mid);
+
+  $menu = wp_get_nav_menu_items($mid);
+
     return $menu;
 });
 
@@ -182,3 +187,37 @@ add_action( 'wpml_enqueued_browser_redirect_language', function($enqueued, $para
       <?php
      }
 }, 10, 2 );
+
+
+add_filter('vibebp_member_directory_filters',function($args){
+  $d_l = apply_filters('wpml_default_language', NULL );
+  $c_l=$_COOKIE['wp-wpml_current_language'];
+        
+  if(!empty($args) && !empty($c_l) && $d_l != $c_l ){
+    foreach($args as $i=>$arg){
+      $name = 'profile field '.$arg['field_id'].' name';
+      $args[$i]['name']=apply_filters('wpml_translate_single_string',$arg['name'],'Buddypress Multilingual',$name,$c_l);
+    }
+  }
+  return $args;
+});
+
+
+add_filter('vibebp_xprofile_field_options',function($return){
+  $d_l = apply_filters('wpml_default_language', NULL );
+  $c_l=$_COOKIE['wp-wpml_current_language'];
+  if(!empty($return['values']) && !empty($c_l) && $d_l != $c_l ){
+    foreach($return['values'] as $i=>$v){
+      
+      if(!empty($v['values'])){
+        foreach($v['values'] as $k=>$val){
+
+          $name= "profile field ".$v['id']." - option '".strtolower($val->name)."' name";
+      $return['values'][$i]['values'][$k]->name=apply_filters('wpml_translate_single_string',$val->name,'Buddypress Multilingual',$name,$c_l);
+        }
+      }
+      
+    }
+  }
+  return $return;
+});
